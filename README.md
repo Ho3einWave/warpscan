@@ -101,7 +101,7 @@ For each candidate the scanner:
    --tcp-buf 2048`).
 3. Waits for the log line `serving proxy` (or a TCP connect fallback).
 4. Downloads the test URL through the SOCKS5 proxy with an HTTP Range request.
-5. Kills the child and removes its cache.
+5. Kills the child and removes its temporary cache.
 
 Defaults:
 
@@ -114,6 +114,7 @@ Defaults:
 | `--test-runs` | `2` | Samples per endpoint; the median is reported |
 | `--test-timeout-ms` | `60000` | Timeout per sample |
 | `--warpeer-args` | production obfs/TCP args | Override `warpeer` arguments |
+| `--warpeer-cache-dir` | temporary | Reuse a warpeer identity instead of registering a temp one |
 
 `--throughput` forces a handshake-only sweep (the data-plane test is the real
 quality signal). The direct line speed is measured once per scan for context.
