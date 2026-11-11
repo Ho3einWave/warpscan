@@ -1,9 +1,27 @@
 # warpscan
 
+[![CI](https://github.com/Ho3einWave/warpscan/actions/workflows/ci.yml/badge.svg)](https://github.com/Ho3einWave/warpscan/actions/workflows/ci.yml)
+
 Cloudflare WARP endpoint scanner that verifies candidates with a **real
 WireGuard handshake** and, optionally, an end-to-end connectivity check through
 the tunnel. It registers its own WARP account directly with Cloudflare, so it
 does not depend on `wgcf` or `warp-plus`.
+
+## CI and releases
+
+Pushes and pull requests to `main` run formatting, Clippy, tests, and the
+Linux/Windows release builds. Pushing a version tag publishes a GitHub Release
+with both binaries:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Release assets:
+
+- `warpscan-x86_64-unknown-linux-gnu.tar.gz`
+- `warpscan-x86_64-pc-windows-msvc.zip`
 
 ## Build
 
