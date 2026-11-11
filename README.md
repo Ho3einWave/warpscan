@@ -16,8 +16,8 @@ Linux/Windows release builds. Pushing a version tag publishes a GitHub Release
 with both binaries:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 Release assets:
