@@ -1,6 +1,8 @@
 mod handshake;
 mod http_check;
+mod masque_scan;
 mod scanner;
+mod throughput;
 mod tunnel;
 mod warp;
 
@@ -90,7 +92,12 @@ enum Cmd {
         /// ICMP echoes sent within each session when --check ping.
         #[arg(long, default_value_t = 3)]
         icmp_count: u32,
+        #[command(flatten)]
+        throughput: throughput::ThroughputArgs,
     },
+    /// Rank MASQUE endpoints (162.159.198.0/24 and 2606:4700:103::/64) by
+    /// data-plane throughput through warpeer.
+    Masque(masque_scan::MasqueArgs),
 }
 
 #[tokio::main]
@@ -133,6 +140,7 @@ async fn main() -> Result<()> {
             check,
             ping_target,
             icmp_count,
+            throughput,
         } => {
             scan_cmd(
                 &account,
@@ -148,9 +156,11 @@ async fn main() -> Result<()> {
                 check,
                 ping_target,
                 icmp_count,
+                throughput,
             )
             .await
         }
+        Cmd::Masque(args) => masque_scan::run(args).await,
     }
 }
 
@@ -208,6 +218,7 @@ async fn scan_cmd(
     check: CheckMode,
     ping_target: Ipv4Addr,
     icmp_count: u32,
+    throughput_args: throughput::ThroughputArgs,
 ) -> Result<()> {
     if concurrency == 0 {
         bail!("--concurrency must be at least 1");
@@ -218,9 +229,37 @@ async fn scan_cmd(
     if timeout_ms == 0 {
         bail!("--timeout-ms must be at least 1");
     }
-    if !handshake_only && check == CheckMode::Ping && icmp_count == 0 {
+    if !handshake_only && !throughput_args.throughput && check == CheckMode::Ping && icmp_count == 0
+    {
         bail!("--icmp-count must be at least 1 when --check ping");
     }
+    if throughput_args.throughput {
+        if throughput_args.throughput_top == 0 {
+            bail!("--throughput-top must be at least 1");
+        }
+        if throughput_args.max_rtt == 0 {
+            bail!("--max-rtt must be at least 1");
+        }
+        if throughput_args.test.test_bytes == 0 {
+            bail!("--test-bytes must be greater than 0");
+        }
+        if throughput_args.test.test_runs == 0 {
+            bail!("--test-runs must be at least 1");
+        }
+        if throughput_args.test.test_url.trim().is_empty() {
+            bail!("--test-url must not be empty");
+        }
+    } else if throughput_args.test.json.is_some() || throughput_args.test.best_out.is_some() {
+        bail!("--json and --best-out require --throughput");
+    }
+
+    let throughput_enabled = throughput_args.throughput;
+    let handshake_only = handshake_only || throughput_enabled;
+    let probes = if throughput_enabled {
+        probes.max(2)
+    } else {
+        probes
+    };
 
     let acct = obtain_account(account, new).await?;
 
@@ -230,7 +269,9 @@ async fn scan_cmd(
         resolve_http_dest(check).await?
     };
 
-    let check_desc = if handshake_only {
+    let check_desc = if throughput_enabled {
+        "handshake only (data-plane throughput stage follows)".to_string()
+    } else if handshake_only {
         "handshake only".to_string()
     } else {
         match check {
@@ -266,7 +307,7 @@ async fn scan_cmd(
     )
     .await?;
 
-    if results.is_empty() {
+    if results.is_empty() && !throughput_enabled {
         let what = if handshake_only {
             "completed a handshake"
         } else {
@@ -274,6 +315,27 @@ async fn scan_cmd(
         };
         println!("No endpoint {what}. The DPI may be blocking all candidates tried;");
         println!("try a larger --count, a longer --timeout-ms, or run again (ports are sampled).");
+        return Ok(());
+    }
+
+    if throughput_enabled {
+        let opts = throughput_args
+            .test
+            .options(throughput::DEFAULT_WG_WARPEER_ARGS, Duration::from_secs(25));
+        let limit = throughput_args.throughput_top.min(top.max(1));
+        let report = throughput::run_wireguard(
+            &results,
+            &opts,
+            limit,
+            Duration::from_millis(throughput_args.max_rtt),
+        )
+        .await?;
+        report.print(top);
+        report.write_outputs(
+            throughput_args.test.json.as_deref(),
+            throughput_args.test.best_out.as_deref(),
+            top,
+        )?;
         return Ok(());
     }
 
