@@ -172,39 +172,6 @@ Reference numbers on a ~120 Mbps line (they vary with time of day and load):
 - MASQUE over HTTP/3: faster where UDP/443 is available; unavailable on the
   reference network.
 
-### Reference acceptance run
-
-Measured on the reference Ubuntu box (6 cores, ~120 Mbps line). The direct
-line fluctuated from 0.3 to 14 MB/s during testing, so these numbers are a
-snapshot, not fixed expectations.
-
-**WireGuard** (direct line 6.0 MB/s at measurement time):
-
-| Endpoint | Handshake | Loss | MB/s | Stable |
-| --- | ---: | ---: | ---: | :---: |
-| `188.114.96.194:1014` | 101.2 ms | 0% | 10.6 | yes |
-| `162.159.192.230:934` | 99.4 ms | 0% | 10.3 | yes |
-| `162.159.195.160:5956` | 102.6 ms | 0% | 10.4 | yes |
-| `188.114.97.75:7152` | 105.9 ms | 0% | 8.8 | yes |
-| `188.114.96.193:1701` | 104.0 ms | 0% | 6.9 | yes |
-
-The best endpoint reproduced at 8.4 MB/s median with the same
-`warpeer -e ... --jc 8 ... --tcp-buf 2048` command (−20%).
-
-**MASQUE HTTP/2** (direct line 12.0 MB/s at measurement time):
-
-| Endpoint | MB/s | Stable |
-| --- | ---: | :---: |
-| `162.159.198.141:443` | 4.5 | yes |
-| `162.159.198.206:443` | 4.1 | no |
-| `162.159.198.2:443` | 3.6 | yes |
-| `162.159.198.246:443` | 3.4 | yes |
-| `162.159.198.242:443` | 3.5 | no |
-
-The best endpoint reproduced at 3.7 MB/s median (−18%). HTTP/3 was unavailable
-on this network because UDP/443 is filtered: auto mode recorded an HTTP/2
-fallback, and `--h3-only` failed as expected instead of pretending to work.
-
 ## How it works
 
 - `src/warp.rs` registers an X25519 keypair with Cloudflare and stores the
