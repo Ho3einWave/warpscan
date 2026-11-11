@@ -164,13 +164,8 @@ UDP/443 is filtered, use `--h2`; otherwise every H3 attempt costs the H3
 connect timeout before falling back. `--ipv6` selects the IPv6 candidate range;
 `--all` covers all 256 IPv4 candidates (sequential, so it is slow).
 
-Reference numbers on a ~120 Mbps line (they vary with time of day and load):
-
-- Direct 30 MB npm download: 9–14 MB/s.
-- WireGuard + 2 MiB TCP buffer: 11–14 MB/s.
-- MASQUE over HTTP/2 with MTU 1400: 4.6–6.0 MB/s.
-- MASQUE over HTTP/3: faster where UDP/443 is available; unavailable on the
-  reference network.
+Actual throughput depends heavily on the network path and time of day. Measure
+it on the deployment network instead of assuming a fixed value.
 
 ## How it works
 
